@@ -245,6 +245,8 @@ export const defaultAgentFormValues = {
   provider: {},
   projectIds: [],
   edges: [],
+  conversation_starters: [],
+  initial_message: '',
   artifacts: '',
   /** @deprecated Use ACL permissions instead */
   isCollaborative: false,
@@ -257,6 +259,7 @@ export const defaultAgentFormValues = {
     name: '',
     email: '',
   },
+  gallery: [],
 };
 
 export const ImageVisionTool: FunctionTool = {

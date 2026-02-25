@@ -42,6 +42,7 @@ const {
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { getCategoriesWithCounts, deleteFileByFilter } = require('~/models');
 const { resizeAvatar } = require('~/server/services/Files/images/avatar');
+const { resizeGalleryImage } = require('~/server/services/Files/images/resize');
 const { getFileStrategy } = require('~/server/utils/getFileStrategy');
 const { refreshS3Url } = require('~/server/services/Files/S3/crud');
 const { filterFile } = require('~/server/services/Files/process');
@@ -696,6 +697,132 @@ const uploadAgentAvatarHandler = async (req, res) => {
   }
 };
 
+const MAX_AGENT_GALLERY_IMAGES = 10;
+
+/**
+ * Uploads and updates the gallery for a specific agent.
+ * @route POST /:agent_id/gallery
+ * @param {object} req - Express Request
+ * @param {object} req.params - Request params
+ * @param {string} req.params.agent_id - The ID of the agent.
+ * @param {Express.Multer.File[]} req.files - The gallery image files.
+ * @returns {Promise<void>} 201 - success response - application/json
+ */
+const uploadAgentGalleryHandler = async (req, res) => {
+  const files = req.files ?? [];
+  const tempPaths = files.map((f) => f.path);
+
+  try {
+    const appConfig = req.config;
+    if (!files.length) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+    if (files.length > MAX_AGENT_GALLERY_IMAGES) {
+      return res.status(400).json({
+        message: `Maximum ${MAX_AGENT_GALLERY_IMAGES} images allowed`,
+      });
+    }
+
+    for (const file of files) {
+      req.file = file;
+      filterFile({ req, image: true, isAvatar: true });
+    }
+
+    const { agent_id } = req.params;
+    if (!agent_id) {
+      return res.status(400).json({ message: 'Agent ID is required' });
+    }
+
+    const existingAgent = await getAgent({ id: agent_id });
+    if (!existingAgent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const fileStrategy = getFileStrategy(appConfig, { isAvatar: true });
+    const { processGalleryImage } = getStrategyFunctions(fileStrategy);
+    if (!processGalleryImage) {
+      return res.status(500).json({ message: 'Gallery upload not supported for this storage' });
+    }
+
+    const gallery = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const buffer = await fs.readFile(file.path);
+      let resizedBuffer;
+      try {
+        const result = await resizeGalleryImage({
+          inputBuffer: buffer,
+          desiredFormat: 'png',
+        });
+        resizedBuffer = result.buffer;
+      } catch (imgErr) {
+        logger.warn(
+          `[/:agent_id/gallery] Image processing failed (${file.originalname ?? 'file'}):`,
+          imgErr?.message ?? imgErr,
+        );
+        return res.status(400).json({
+          message:
+            'Image processing failed. AVIF may not be supported on this server. Please use PNG, JPEG, or WebP.',
+        });
+      }
+      const filepath = await processGalleryImage({
+        buffer: resizedBuffer,
+        userId: req.user.id,
+        agentId: agent_id,
+        index: i,
+      });
+      gallery.push({ filepath, source: fileStrategy });
+    }
+
+    const oldGallery = existingAgent.gallery ?? [];
+    if (oldGallery.length > 0) {
+      for (const img of oldGallery) {
+        if (img?.source && img?.filepath) {
+          try {
+            const { deleteFile: deleteFn } = getStrategyFunctions(img.source);
+            if (deleteFn) {
+              await deleteFn(req, { filepath: img.filepath });
+            }
+            await deleteFileByFilter({ user: req.user.id, filepath: img.filepath });
+          } catch (error) {
+            logger.error('[/:agent_id/gallery] Error deleting old gallery image', error);
+          }
+        }
+      }
+    }
+
+    const updatedAgent = await updateAgent(
+      { id: agent_id },
+      { gallery },
+      { updatingUserId: req.user.id },
+    );
+
+    try {
+      const avatarCache = getLogStores(CacheKeys.S3_EXPIRY_INTERVAL);
+      await avatarCache.delete(`${req.user.id}:agents_avatar_refresh`);
+    } catch (cacheErr) {
+      logger.error('[/:agent_id/gallery] Error invalidating avatar refresh cache', cacheErr);
+    }
+
+    res.status(201).json(updatedAgent);
+  } catch (error) {
+    const message = 'An error occurred while updating the Agent Gallery';
+    logger.error(
+      `[/:agent_id/gallery] ${message} (${req.params?.agent_id ?? 'unknown agent'})`,
+      error,
+    );
+    res.status(500).json({ message });
+  } finally {
+    for (const p of tempPaths) {
+      try {
+        await fs.unlink(p);
+      } catch {
+        // ignore
+      }
+    }
+  }
+};
+
 /**
  * Reverts an agent to a previous version from its version history.
  * @route PATCH /agents/:id/revert
@@ -797,6 +924,7 @@ module.exports = {
   deleteAgent: deleteAgentHandler,
   getListAgents: getListAgentsHandler,
   uploadAgentAvatar: uploadAgentAvatarHandler,
+  uploadAgentGallery: uploadAgentGalleryHandler,
   revertAgentVersion: revertAgentVersionHandler,
   getAgentCategories,
 };

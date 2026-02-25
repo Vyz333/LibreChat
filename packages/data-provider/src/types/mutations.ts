@@ -120,6 +120,13 @@ export type UpdateAgentActionVariables = {
 
 export type UploadAgentAvatarOptions = MutationOptions<Agent, AgentAvatarVariables>;
 
+export type AgentGalleryVariables = {
+  agent_id: string;
+  formData: FormData;
+};
+
+export type UploadAgentGalleryOptions = MutationOptions<Agent, AgentGalleryVariables>;
+
 export type CreateAgentMutationOptions = MutationOptions<Agent, AgentCreateParams>;
 
 export type UpdateAgentVariables = {
@@ -400,6 +407,24 @@ export type TBranchMessageResponse = types.TMessage;
 export type BranchMessageOptions = MutationOptions<
   TBranchMessageResponse,
   TBranchMessageRequest,
+  unknown,
+  Error
+>;
+
+export type TCreateInitialMessageRequest = {
+  agent_id: string;
+  initial_message: string;
+  title?: string;
+};
+
+export type TCreateInitialMessageResponse = {
+  conversation: types.TConversation;
+  message: types.TMessage;
+};
+
+export type CreateInitialMessageOptions = MutationOptions<
+  TCreateInitialMessageResponse,
+  TCreateInitialMessageRequest,
   unknown,
   Error
 >;

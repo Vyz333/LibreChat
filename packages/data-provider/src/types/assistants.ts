@@ -259,6 +259,7 @@ export type Agent = {
   model: string | null;
   model_parameters: AgentModelParameters;
   conversation_starters?: string[];
+  initial_message?: string;
   /** @deprecated Use ACL permissions instead */
   isCollaborative?: boolean;
   tool_resources?: AgentToolResources;
@@ -275,6 +276,8 @@ export type Agent = {
   support_contact?: SupportContact;
   /** Per-tool configuration options (deferred loading, allowed callers, etc.) */
   tool_options?: AgentToolOptions;
+  /** Image gallery for agent chat display */
+  gallery?: AgentAvatar[];
 };
 
 export type TAgentsMap = Record<string, Agent | undefined>;
@@ -292,6 +295,8 @@ export type AgentCreateParams = {
 } & Pick<
   Agent,
   | 'agent_ids'
+  | 'conversation_starters'
+  | 'initial_message'
   | 'edges'
   | 'end_after_tools'
   | 'hide_sequential_outputs'
@@ -300,6 +305,7 @@ export type AgentCreateParams = {
   | 'category'
   | 'support_contact'
   | 'tool_options'
+  | 'gallery'
 >;
 
 export type AgentUpdateParams = {
@@ -319,6 +325,8 @@ export type AgentUpdateParams = {
 } & Pick<
   Agent,
   | 'agent_ids'
+  | 'conversation_starters'
+  | 'initial_message'
   | 'edges'
   | 'end_after_tools'
   | 'hide_sequential_outputs'
@@ -327,6 +335,7 @@ export type AgentUpdateParams = {
   | 'category'
   | 'support_contact'
   | 'tool_options'
+  | 'gallery'
 >;
 
 export type AgentListParams = {

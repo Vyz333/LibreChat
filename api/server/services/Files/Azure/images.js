@@ -137,8 +137,41 @@ async function processAzureAvatar({
   }
 }
 
+/**
+ * Processes a gallery image for an agent by uploading it to Azure Blob storage.
+ * @param {Object} params - The parameters object.
+ * @param {Buffer} params.buffer - Image buffer.
+ * @param {string} params.userId - User's unique identifier.
+ * @param {string} params.agentId - Agent ID.
+ * @param {number} params.index - Index of the image in the gallery.
+ * @param {string} [params.basePath='images'] - Base path in the container.
+ * @param {string} [params.containerName] - The Azure Blob container name.
+ * @returns {Promise<string>} The URL of the uploaded image.
+ */
+async function processAzureGalleryImage({
+  buffer,
+  userId,
+  agentId,
+  index,
+  basePath = 'images',
+  containerName,
+}) {
+  const metadata = await sharp(buffer).metadata();
+  const extension = metadata.format === 'gif' ? 'gif' : 'png';
+  const timestamp = new Date().getTime();
+  const fileName = `agent-${agentId}-gallery-${timestamp}-${index}.${extension}`;
+  return saveBufferToAzure({
+    userId,
+    buffer,
+    fileName,
+    basePath,
+    containerName,
+  });
+}
+
 module.exports = {
   uploadImageToAzure,
   prepareAzureImageURL,
   processAzureAvatar,
+  processAzureGalleryImage,
 };

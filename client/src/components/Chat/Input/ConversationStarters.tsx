@@ -3,10 +3,12 @@ import { EModelEndpoint, Constants } from 'librechat-data-provider';
 import { useChatContext, useAgentsMapContext, useAssistantsMapContext } from '~/Providers';
 import { useGetAssistantDocsQuery, useGetEndpointsQuery } from '~/data-provider';
 import { getIconEndpoint, getEntity } from '~/utils';
-import { useSubmitMessage } from '~/hooks';
+import { useSubmitMessage, useCreateInitialMessage } from '~/hooks';
 
 const ConversationStarters = () => {
   const { conversation } = useChatContext();
+
+  useCreateInitialMessage();
   const agentsMap = useAgentsMapContext();
   const assistantMap = useAssistantsMapContext();
   const { data: endpointsConfig } = useGetEndpointsQuery();

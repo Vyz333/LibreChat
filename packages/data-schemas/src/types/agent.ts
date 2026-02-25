@@ -15,6 +15,10 @@ export interface IAgent extends Omit<Document, 'model'> {
     filepath: string;
     source: string;
   };
+  gallery?: Array<{
+    filepath: string;
+    source: string;
+  }>;
   provider: string;
   model: string;
   model_parameters?: Record<string, unknown>;
@@ -34,6 +38,7 @@ export interface IAgent extends Omit<Document, 'model'> {
   /** @deprecated Use ACL permissions instead */
   isCollaborative?: boolean;
   conversation_starters?: string[];
+  initial_message?: string;
   tool_resources?: unknown;
   projectIds?: Types.ObjectId[];
   versions?: Omit<IAgent, 'versions'>[];

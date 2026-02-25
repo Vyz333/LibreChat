@@ -156,4 +156,47 @@ async function processLocalAvatar({ buffer, userId, manual, agentId }) {
   return url;
 }
 
-module.exports = { uploadLocalImage, encodeImage, prepareImagesLocal, processLocalAvatar };
+/**
+ * Uploads a gallery image for an agent to local server storage.
+ * @param {object} params - The parameters object.
+ * @param {Buffer} params.buffer - The Buffer containing the image.
+ * @param {string} params.userId - The user ID.
+ * @param {string} params.agentId - The agent ID.
+ * @param {number} params.index - The index of the image in the gallery.
+ * @returns {Promise<string>} - A promise that resolves with the URL of the uploaded image.
+ */
+async function processLocalGalleryImage({ buffer, userId, agentId, index }) {
+  const userDir = path.resolve(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    '..',
+    'client',
+    'public',
+    'images',
+    userId,
+  );
+
+  const metadata = await sharp(buffer).metadata();
+  const extension = metadata.format === 'gif' ? 'gif' : 'png';
+
+  const timestamp = new Date().getTime();
+  const fileName = `agent-${agentId}-gallery-${timestamp}-${index}.${extension}`;
+  const urlRoute = `/images/${userId}/${fileName}`;
+  const imagePath = path.join(userDir, fileName);
+
+  await fs.promises.mkdir(userDir, { recursive: true });
+  await fs.promises.writeFile(imagePath, buffer);
+
+  return urlRoute;
+}
+
+module.exports = {
+  uploadLocalImage,
+  encodeImage,
+  prepareImagesLocal,
+  processLocalAvatar,
+  processLocalGalleryImage,
+};

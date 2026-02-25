@@ -47,6 +47,7 @@ const initialize = async () => {
   router.post('/images', upload.single('file'));
   router.post('/images/avatar', upload.single('file'));
   router.post('/images/agents/:agent_id/avatar', upload.single('file'));
+  router.post('/images/agents/:agent_id/gallery', upload.array('files', 10));
   router.post('/images/assistants/:assistant_id/avatar', upload.single('file'));
 
   router.use('/', files);

@@ -196,6 +196,12 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')) 
         description: 'com_agents_category_aftersales_description',
         order: 6,
       },
+      {
+        value: 'nsfw',
+        label: 'com_agents_category_nsfw',
+        description: 'com_agents_category_nsfw_description',
+        order: 7,
+      },
     ];
 
     const existingCategories = await getAllCategories();

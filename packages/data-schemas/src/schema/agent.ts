@@ -22,6 +22,10 @@ const agentSchema = new Schema<IAgent>(
       type: Schema.Types.Mixed,
       default: undefined,
     },
+    gallery: {
+      type: [{ filepath: String, source: String }],
+      default: undefined,
+    },
     provider: {
       type: String,
       required: true,
@@ -83,6 +87,9 @@ const agentSchema = new Schema<IAgent>(
     conversation_starters: {
       type: [String],
       default: [],
+    },
+    initial_message: {
+      type: String,
     },
     tool_resources: {
       type: Schema.Types.Mixed,

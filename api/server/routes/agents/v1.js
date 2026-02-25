@@ -182,4 +182,14 @@ avatar.post(
   v1.uploadAgentAvatar,
 );
 
+avatar.post(
+  '/:agent_id/gallery/',
+  checkAgentAccess,
+  canAccessAgentResource({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'agent_id',
+  }),
+  v1.uploadAgentGallery,
+);
+
 module.exports = { v1: router, avatar };

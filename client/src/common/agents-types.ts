@@ -50,4 +50,10 @@ export type AgentForm = {
   avatar_file?: File | null;
   avatar_preview?: string | null;
   avatar_action?: 'upload' | 'reset' | null;
+  // Gallery management fields
+  gallery_files?: File[];
+  gallery_preview?: string[];
+  gallery_action?: 'upload' | 'reset' | null;
+  conversation_starters?: string[];
+  initial_message?: string;
 } & TAgentCapabilities;

@@ -118,4 +118,26 @@ async function processFirebaseAvatar({ buffer, userId, manual, agentId }) {
   }
 }
 
-module.exports = { uploadImageToFirebase, prepareImageURL, processFirebaseAvatar };
+/**
+ * Uploads a gallery image for an agent to Firebase storage.
+ * @param {object} params - The parameters object.
+ * @param {Buffer} params.buffer - The Buffer containing the image.
+ * @param {string} params.userId - The user ID.
+ * @param {string} params.agentId - The agent ID.
+ * @param {number} params.index - The index of the image in the gallery.
+ * @returns {Promise<string>} - A promise that resolves with the URL of the uploaded image.
+ */
+async function processFirebaseGalleryImage({ buffer, userId, agentId, index }) {
+  const metadata = await sharp(buffer).metadata();
+  const extension = metadata.format === 'gif' ? 'gif' : 'png';
+  const timestamp = new Date().getTime();
+  const fileName = `agent-${agentId}-gallery-${timestamp}-${index}.${extension}`;
+  return saveBufferToFirebase({ userId, buffer, fileName });
+}
+
+module.exports = {
+  uploadImageToFirebase,
+  prepareImageURL,
+  processFirebaseAvatar,
+  processFirebaseGalleryImage,
+};

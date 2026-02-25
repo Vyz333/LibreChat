@@ -66,6 +66,7 @@ export const agentBaseSchema = z.object({
   description: z.string().nullable().optional(),
   instructions: z.string().nullable().optional(),
   avatar: agentAvatarSchema.nullable().optional(),
+  gallery: z.array(agentAvatarSchema).optional(),
   model_parameters: z.record(z.unknown()).optional(),
   tools: z.array(z.string()).optional(),
   /** @deprecated Use edges instead */
@@ -76,6 +77,7 @@ export const agentBaseSchema = z.object({
   artifacts: z.string().optional(),
   recursion_limit: z.number().optional(),
   conversation_starters: z.array(z.string()).optional(),
+  initial_message: z.string().optional(),
   tool_resources: agentToolResourcesSchema,
   tool_options: agentToolOptionsSchema,
   support_contact: agentSupportContactSchema,

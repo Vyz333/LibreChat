@@ -113,4 +113,42 @@ async function resizeAndConvert({ inputBuffer, desiredFormat, width = 150 }) {
   };
 }
 
-module.exports = { resizeImageBuffer, resizeAndConvert };
+const GALLERY_MAX_DIMENSION = 512;
+
+/**
+ * Resizes a gallery image for display, preserving aspect ratio.
+ * Uses larger dimensions than avatars to avoid pixelation.
+ *
+ * @param {Object} options - The options for resizing.
+ * @param {Buffer} options.inputBuffer - The buffer of the image to resize.
+ * @param {string} options.desiredFormat - The desired output format.
+ * @returns {Promise<{ buffer: Buffer, width: number, height: number, bytes: number }>}
+ */
+async function resizeGalleryImage({ inputBuffer, desiredFormat }) {
+  const metadata = await sharp(inputBuffer).metadata();
+  const { width, height } = metadata;
+  const maxDim = Math.max(width, height);
+  const resizeOpts =
+    maxDim <= GALLERY_MAX_DIMENSION
+      ? {}
+      : {
+          width: GALLERY_MAX_DIMENSION,
+          height: GALLERY_MAX_DIMENSION,
+          fit: 'inside',
+          withoutEnlargement: true,
+        };
+
+  const resizedBuffer = await sharp(inputBuffer)
+    .resize(resizeOpts)
+    .toFormat(desiredFormat)
+    .toBuffer();
+  const resizedMetadata = await sharp(resizedBuffer).metadata();
+  return {
+    buffer: resizedBuffer,
+    width: resizedMetadata.width,
+    height: resizedMetadata.height,
+    bytes: Buffer.byteLength(resizedBuffer),
+  };
+}
+
+module.exports = { resizeImageBuffer, resizeAndConvert, resizeGalleryImage };

@@ -122,8 +122,33 @@ async function processS3Avatar({ buffer, userId, manual, agentId, basePath = def
   }
 }
 
+/**
+ * Processes a gallery image for an agent by uploading it to S3.
+ * @param {Object} params - The parameters object.
+ * @param {Buffer} params.buffer - Image buffer.
+ * @param {string} params.userId - User's unique identifier.
+ * @param {string} params.agentId - Agent ID.
+ * @param {number} params.index - Index of the image in the gallery.
+ * @param {string} [params.basePath='images'] - Base path in the bucket.
+ * @returns {Promise<string>} Signed URL of the uploaded image.
+ */
+async function processS3GalleryImage({
+  buffer,
+  userId,
+  agentId,
+  index,
+  basePath = defaultBasePath,
+}) {
+  const metadata = await sharp(buffer).metadata();
+  const extension = metadata.format === 'gif' ? 'gif' : 'png';
+  const timestamp = new Date().getTime();
+  const fileName = `agent-${agentId}-gallery-${timestamp}-${index}.${extension}`;
+  return saveBufferToS3({ userId, buffer, fileName, basePath });
+}
+
 module.exports = {
   uploadImageToS3,
   prepareImageURLS3,
   processS3Avatar,
+  processS3GalleryImage,
 };

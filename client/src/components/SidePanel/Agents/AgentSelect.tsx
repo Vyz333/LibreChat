@@ -77,13 +77,16 @@ export default function AgentSelect({
         agent: update,
         model: update.model,
         tools: agentTools,
-        // Ensure the category is properly set for the form
         category: fullAgent.category || 'general',
-        // Make sure support_contact is properly loaded
         support_contact: fullAgent.support_contact,
+        conversation_starters: fullAgent.conversation_starters ?? [],
+        initial_message: fullAgent.initial_message ?? '',
         avatar_file: null,
         avatar_preview: fullAgent.avatar?.filepath ?? '',
         avatar_action: null,
+        gallery_files: [],
+        gallery_preview: fullAgent.gallery?.map((g) => g.filepath) ?? [],
+        gallery_action: null,
       };
 
       Object.entries(fullAgent).forEach(([name, value]) => {
@@ -107,6 +110,16 @@ export default function AgentSelect({
         }
 
         if (name === 'edges' && Array.isArray(value)) {
+          formValues[name] = value;
+          return;
+        }
+
+        if (name === 'conversation_starters' && Array.isArray(value)) {
+          formValues[name] = value;
+          return;
+        }
+
+        if (name === 'initial_message' && typeof value === 'string') {
           formValues[name] = value;
           return;
         }

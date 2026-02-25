@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { dataService, QueryKeys, Constants } from 'librechat-data-provider';
+import {
+  dataService,
+  QueryKeys,
+  Constants,
+  MutationKeys,
+} from 'librechat-data-provider';
 import type { UseMutationResult, UseMutationOptions } from '@tanstack/react-query';
 import type * as t from 'librechat-data-provider';
 
@@ -165,6 +170,38 @@ export const useBranchMessageMutation = (
         );
       }
 
+      onSuccess?.(data, vars, context);
+    },
+    ...options,
+  };
+
+  return useMutation(mutationOptions);
+};
+
+export const useCreateInitialMessageMutation = (
+  _options?: t.CreateInitialMessageOptions,
+): UseMutationResult<
+  t.TCreateInitialMessageResponse,
+  Error,
+  t.TCreateInitialMessageRequest
+> => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...options } = _options ?? {};
+
+  const mutationOptions: UseMutationOptions<
+    t.TCreateInitialMessageResponse,
+    Error,
+    t.TCreateInitialMessageRequest
+  > = {
+    mutationKey: [MutationKeys.createInitialMessage],
+    mutationFn: (variables: t.TCreateInitialMessageRequest) =>
+      dataService.createInitialMessage(variables),
+    onSuccess: (data, vars, context) => {
+      const { conversation } = data;
+      if (conversation?.conversationId) {
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.messages, conversation.conversationId] });
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.allConversations] });
+      }
       onSuccess?.(data, vars, context);
     },
     ...options,

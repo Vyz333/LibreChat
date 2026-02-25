@@ -14,6 +14,7 @@ const {
   uploadFileToFirebase,
   uploadImageToFirebase,
   processFirebaseAvatar,
+  processFirebaseGalleryImage,
   getFirebaseFileStream,
 } = require('./Firebase');
 const {
@@ -25,6 +26,7 @@ const {
   uploadLocalImage,
   prepareImagesLocal,
   processLocalAvatar,
+  processLocalGalleryImage,
   getLocalFileStream,
 } = require('./Local');
 const {
@@ -36,6 +38,7 @@ const {
   prepareImageURLS3,
   deleteFileFromS3,
   processS3Avatar,
+  processS3GalleryImage,
   uploadFileToS3,
 } = require('./S3');
 const {
@@ -48,6 +51,7 @@ const {
   uploadImageToAzure,
   prepareAzureImageURL,
   processAzureAvatar,
+  processAzureGalleryImage,
 } = require('./Azure');
 const { uploadOpenAIFile, deleteOpenAIFile, getOpenAIFileStream } = require('./OpenAI');
 const { getCodeOutputDownloadStream, uploadCodeEnvFile } = require('./Code');
@@ -65,6 +69,7 @@ const firebaseStrategy = () => ({
   saveBuffer: saveBufferToFirebase,
   prepareImagePayload: prepareImageURL,
   processAvatar: processFirebaseAvatar,
+  processGalleryImage: processFirebaseGalleryImage,
   handleImageUpload: uploadImageToFirebase,
   getDownloadStream: getFirebaseFileStream,
 });
@@ -80,6 +85,7 @@ const localStrategy = () => ({
   saveBuffer: saveLocalBuffer,
   deleteFile: deleteLocalFile,
   processAvatar: processLocalAvatar,
+  processGalleryImage: processLocalGalleryImage,
   handleImageUpload: uploadLocalImage,
   prepareImagePayload: prepareImagesLocal,
   getDownloadStream: getLocalFileStream,
@@ -97,6 +103,7 @@ const s3Strategy = () => ({
   saveBuffer: saveBufferToS3,
   prepareImagePayload: prepareImageURLS3,
   processAvatar: processS3Avatar,
+  processGalleryImage: processS3GalleryImage,
   handleImageUpload: uploadImageToS3,
   getDownloadStream: getS3FileStream,
 });
@@ -113,6 +120,7 @@ const azureStrategy = () => ({
   saveBuffer: saveBufferToAzure,
   prepareImagePayload: prepareAzureImageURL,
   processAvatar: processAzureAvatar,
+  processGalleryImage: processAzureGalleryImage,
   handleImageUpload: uploadImageToAzure,
   getDownloadStream: getAzureFileStream,
 });

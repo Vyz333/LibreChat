@@ -11,6 +11,8 @@ const {
   updateMessage,
   deleteMessages,
 } = require('~/models');
+const { getAgent } = require('~/models/Agent');
+const { EModelEndpoint, Constants } = require('librechat-data-provider');
 const { findAllArtifacts, replaceArtifactContent } = require('~/server/services/Artifacts/update');
 const { requireJwtAuth, validateMessageReq } = require('~/server/middleware');
 const { getConvosQueried } = require('~/models/Conversation');
@@ -275,6 +277,86 @@ router.post('/artifact/:messageId', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error editing artifact:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * Creates a new conversation with an agent's initial message.
+ * Used when starting a chat with an agent that has initial_message configured.
+ *
+ * @route POST /initial
+ * @param {string} req.body.agent_id - The agent ID
+ * @param {string} req.body.initial_message - The initial message content
+ * @param {string} [req.body.title] - Optional conversation title
+ * @returns {{ conversation: TConversation, message: TMessage }}
+ */
+router.post('/initial', async (req, res) => {
+  try {
+    const { agent_id, initial_message, title } = req.body;
+    const userId = req.user.id;
+
+    if (!agent_id || !initial_message || typeof initial_message !== 'string') {
+      return res.status(400).json({ error: 'agent_id and initial_message are required' });
+    }
+
+    const trimmedMessage = initial_message.trim();
+    if (!trimmedMessage) {
+      return res.status(400).json({ error: 'initial_message cannot be empty' });
+    }
+
+    const agent = await getAgent({ id: agent_id });
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    if (agent.initial_message !== trimmedMessage) {
+      return res.status(400).json({
+        error: 'initial_message does not match agent configuration',
+      });
+    }
+
+    const conversationId = uuidv4();
+    const messageId = uuidv4();
+
+    /** @type {import('librechat-data-provider').TMessage} */
+    const newMessage = {
+      messageId,
+      conversationId,
+      parentMessageId: Constants.NO_PARENT,
+      content: [{ type: ContentTypes.TEXT, text: trimmedMessage }],
+      isCreatedByUser: false,
+      model: agent.model,
+      endpoint: EModelEndpoint.agents,
+      sender: agent.name ?? 'Agent',
+      unfinished: false,
+      error: false,
+      user: userId,
+    };
+
+    const savedMessage = await saveMessage(req, newMessage, {
+      context: 'POST /api/messages/initial',
+    });
+
+    if (!savedMessage) {
+      return res.status(500).json({ error: 'Failed to save initial message' });
+    }
+
+    const conversation = await saveConvo(
+      req,
+      {
+        conversationId,
+        endpoint: EModelEndpoint.agents,
+        agent_id,
+        model: agent.model,
+        title: title ?? agent.name ?? null,
+      },
+      { context: 'POST /api/messages/initial' },
+    );
+
+    res.status(201).json({ conversation, message: savedMessage });
+  } catch (error) {
+    logger.error('Error creating initial message:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

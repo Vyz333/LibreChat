@@ -8,7 +8,7 @@ import type { AgentForm } from '~/common';
 import {
   composeAgentUpdatePayload,
   persistAvatarChanges,
-  isAvatarUploadOnlyDirty,
+  isAvatarOrGalleryUploadOnlyDirty,
 } from '../AgentPanel';
 
 const createForm = (): AgentForm => ({
@@ -112,14 +112,14 @@ describe('persistAvatarChanges', () => {
   });
 });
 
-describe('isAvatarUploadOnlyDirty', () => {
+describe('isAvatarOrGalleryUploadOnlyDirty', () => {
   it('detects avatar-only dirty state', () => {
     const dirtyFields = {
       avatar_action: true,
       avatar_preview: true,
     } as FieldNamesMarkedBoolean<AgentForm>;
 
-    expect(isAvatarUploadOnlyDirty(dirtyFields)).toBe(true);
+    expect(isAvatarOrGalleryUploadOnlyDirty(dirtyFields)).toBe(true);
   });
 
   it('ignores agent field when checking dirty state', () => {
@@ -128,7 +128,7 @@ describe('isAvatarUploadOnlyDirty', () => {
       avatar_file: true,
     } as FieldNamesMarkedBoolean<AgentForm>;
 
-    expect(isAvatarUploadOnlyDirty(dirtyFields)).toBe(true);
+    expect(isAvatarOrGalleryUploadOnlyDirty(dirtyFields)).toBe(true);
   });
 
   it('returns false when other fields are dirty', () => {
@@ -136,6 +136,6 @@ describe('isAvatarUploadOnlyDirty', () => {
       name: true,
     } as FieldNamesMarkedBoolean<AgentForm>;
 
-    expect(isAvatarUploadOnlyDirty(dirtyFields)).toBe(false);
+    expect(isAvatarOrGalleryUploadOnlyDirty(dirtyFields)).toBe(false);
   });
 });

@@ -22,6 +22,8 @@ import { useGetAgentFiles } from '~/data-provider';
 import { icons } from '~/hooks/Endpoint/Icons';
 import Instructions from './Instructions';
 import AgentAvatar from './AgentAvatar';
+import AgentGalleryDisplay from './AgentGalleryDisplay';
+import AgentGalleryUpload from './AgentGalleryUpload';
 import FileContext from './FileContext';
 import SearchForm from './Search/Form';
 import FileSearch from './FileSearch';
@@ -29,6 +31,7 @@ import Artifacts from './Artifacts';
 import AgentTool from './AgentTool';
 import CodeForm from './Code/Form';
 import MCPTools from './MCPTools';
+import AssistantConversationStarters from '~/components/SidePanel/Builder/AssistantConversationStarters';
 
 const labelClass = 'mb-2 text-token-text-primary block font-medium';
 const inputClass = cn(
@@ -181,9 +184,14 @@ export default function AgentConfig() {
   return (
     <>
       <div className="h-auto bg-white px-4 pt-3 dark:bg-transparent">
+        {/* Gallery display at top */}
+        {agent?.gallery?.length ? (
+          <AgentGalleryDisplay images={agent.gallery} />
+        ) : null}
         {/* Avatar & Name */}
         <div className="mb-4">
           <AgentAvatar avatar={agent?.['avatar'] ?? null} />
+          <AgentGalleryUpload gallery={agent?.gallery ?? null} />
           <label className={labelClass} htmlFor="name">
             {localize('com_ui_name')}
             <span className="text-red-500">*</span>
@@ -257,6 +265,46 @@ export default function AgentConfig() {
         </div>
         {/* Instructions */}
         <Instructions />
+        {/* Conversation Starters */}
+        <div className="mb-4">
+          <Controller
+            name="conversation_starters"
+            control={control}
+            defaultValue={[]}
+            render={({ field }) => (
+              <AssistantConversationStarters
+                field={{ ...field, value: field.value ?? [] }}
+                inputClass={inputClass}
+                labelClass={labelClass}
+              />
+            )}
+          />
+        </div>
+        {/* Initial Message */}
+        <div className="mb-4">
+          <Controller
+            name="initial_message"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <>
+                <label className={labelClass} htmlFor="initial_message">
+                  {localize('com_agents_initial_message')}
+                </label>
+                <textarea
+                  {...field}
+                  id="initial_message"
+                  value={field.value ?? ''}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  placeholder={localize('com_agents_initial_message_placeholder')}
+                  className={inputClass}
+                  rows={3}
+                  aria-label={localize('com_agents_initial_message')}
+                />
+              </>
+            )}
+          />
+        </div>
         {/* Model and Provider */}
         <div className="mb-4">
           <label className={labelClass} htmlFor="provider">

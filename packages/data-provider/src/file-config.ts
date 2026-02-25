@@ -50,6 +50,8 @@ export const fullMimeTypesList = [
   'text/javascript',
   'image/gif',
   'image/png',
+  'image/webp',
+  'image/avif',
   'image/heic',
   'image/heif',
   'application/x-tar',
@@ -109,6 +111,8 @@ export const codeInterpreterMimeTypesList = [
   'text/javascript',
   'image/gif',
   'image/png',
+  'image/webp',
+  'image/avif',
   'image/heic',
   'image/heif',
   'application/x-tar',
@@ -181,7 +185,7 @@ export const textMimeTypes =
 export const applicationMimeTypes =
   /^(application\/(epub\+zip|csv|json|msword|pdf|x-tar|x-sh|typescript|sql|yaml|x-parquet|vnd\.apache\.parquet|vnd\.coffeescript|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation|spreadsheetml\.sheet)|xml|zip))$/;
 
-export const imageMimeTypes = /^image\/(jpeg|gif|png|webp|heic|heif)$/;
+export const imageMimeTypes = /^image\/(jpeg|gif|png|webp|avif|heic|heif)$/;
 
 export const audioMimeTypes =
   /^audio\/(mp3|mpeg|mpeg3|wav|wave|x-wav|ogg|vorbis|mp4|m4a|x-m4a|flac|x-flac|webm|aac|wma|opus)$/;
@@ -335,6 +339,7 @@ export const codeTypeMapping: { [key: string]: string } = {
 
 /** Maps image extensions to MIME types for formats browsers may not recognize */
 export const imageTypeMapping: { [key: string]: string } = {
+  avif: 'image/avif',
   heic: 'image/heic',
   heif: 'image/heif',
 };

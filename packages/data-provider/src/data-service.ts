@@ -653,6 +653,13 @@ export const uploadAgentAvatar = (data: m.AgentAvatarVariables): Promise<a.Agent
   );
 };
 
+export const uploadAgentGallery = (data: m.AgentGalleryVariables): Promise<a.Agent> => {
+  return request.postMultiPart(
+    `${endpoints.images()}/agents/${data.agent_id}/gallery`,
+    data.formData,
+  );
+};
+
 export const getFileDownload = async (userId: string, file_id: string): Promise<AxiosResponse> => {
   return request.getResponse(`${endpoints.files()}/download/${userId}/${file_id}`, {
     responseType: 'blob',
@@ -782,6 +789,12 @@ export const branchMessage = async (
   payload: m.TBranchMessageRequest,
 ): Promise<m.TBranchMessageResponse> => {
   return request.post(endpoints.messagesBranch(), payload);
+};
+
+export const createInitialMessage = async (
+  payload: m.TCreateInitialMessageRequest,
+): Promise<m.TCreateInitialMessageResponse> => {
+  return request.post(endpoints.messagesInitial(), payload);
 };
 
 export function getMessagesByConvoId(conversationId: string): Promise<s.TMessage[]> {

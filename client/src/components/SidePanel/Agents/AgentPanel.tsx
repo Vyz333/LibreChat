@@ -21,6 +21,7 @@ import {
   useGetAgentByIdQuery,
   useGetExpandedAgentByIdQuery,
   useUploadAgentAvatarMutation,
+  useUploadAgentGalleryMutation,
 } from '~/data-provider';
 import { createProviderOption, getDefaultAgentFormValues } from '~/utils';
 import { useResourcePermissions } from '~/hooks/useResourcePermissions';
@@ -69,6 +70,8 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
     provider: _provider,
     agent_ids,
     edges,
+    conversation_starters,
+    initial_message,
     end_after_tools,
     hide_sequential_outputs,
     recursion_limit,
@@ -76,10 +79,13 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
     support_contact,
     tool_options,
     avatar_action: avatarActionState,
+    gallery_action: galleryActionState,
   } = data;
 
   const shouldResetAvatar =
     avatarActionState === 'reset' && Boolean(agent_id) && !isEphemeralAgent(agent_id);
+  const shouldResetGallery =
+    galleryActionState === 'reset' && Boolean(agent_id) && !isEphemeralAgent(agent_id);
   const model = _model ?? '';
   const provider =
     (typeof _provider === 'string' ? _provider : (_provider as StringOption).value) ?? '';
@@ -95,6 +101,8 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
       model_parameters,
       agent_ids,
       edges,
+      conversation_starters: conversation_starters?.filter((s) => s.trim() !== '') ?? [],
+      initial_message: initial_message?.trim() || undefined,
       end_after_tools,
       hide_sequential_outputs,
       recursion_limit,
@@ -102,6 +110,7 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
       support_contact,
       tool_options,
       ...(shouldResetAvatar ? { avatar: null } : {}),
+      ...(shouldResetGallery ? { gallery: [] } : {}),
     },
     provider,
     model,
@@ -148,7 +157,49 @@ export async function persistAvatarChanges({
   return true;
 }
 
+export interface PersistGalleryChangesParams {
+  agentId?: string | null;
+  galleryActionState: AgentForm['gallery_action'];
+  galleryFiles?: File[];
+  uploadGallery: (variables: {
+    agent_id: string;
+    formData: FormData;
+  }) => Promise<Agent>;
+}
+
+export async function persistGalleryChanges({
+  agentId,
+  galleryActionState,
+  galleryFiles,
+  uploadGallery,
+}: PersistGalleryChangesParams): Promise<boolean> {
+  if (!agentId || isEphemeralAgent(agentId)) {
+    return false;
+  }
+
+  if (galleryActionState !== 'upload' || !galleryFiles?.length) {
+    return false;
+  }
+
+  const formData = new FormData();
+  for (const file of galleryFiles) {
+    formData.append('files', file, file.name);
+  }
+
+  await uploadGallery({
+    agent_id: agentId,
+    formData,
+  });
+
+  return true;
+}
+
 const AVATAR_ONLY_DIRTY_FIELDS = new Set(['avatar_action', 'avatar_file', 'avatar_preview']);
+const GALLERY_ONLY_DIRTY_FIELDS = new Set([
+  'gallery_action',
+  'gallery_files',
+  'gallery_preview',
+]);
 const IGNORED_DIRTY_FIELDS = new Set(['agent']);
 
 const isNestedDirtyField = (
@@ -180,7 +231,7 @@ const evaluateDirtyFields = (
 
     sawDirty = true;
 
-    if (AVATAR_ONLY_DIRTY_FIELDS.has(key)) {
+    if (AVATAR_ONLY_DIRTY_FIELDS.has(key) || GALLERY_ONLY_DIRTY_FIELDS.has(key)) {
       continue;
     }
 
@@ -191,11 +242,11 @@ const evaluateDirtyFields = (
 };
 
 /**
- * Determines whether the dirty form state only contains avatar uploads/resets.
+ * Determines whether the dirty form state only contains avatar/gallery uploads/resets.
  * This enables short-circuiting the general agent update flow when only the avatar
  * needs to be uploaded.
  */
-export const isAvatarUploadOnlyDirty = (
+export const isAvatarOrGalleryUploadOnlyDirty = (
   dirtyFields?: FieldNamesMarkedBoolean<AgentForm>,
 ): boolean => {
   if (!dirtyFields) {
@@ -252,6 +303,7 @@ export default function AgentPanel() {
     formState: { dirtyFields },
   } = methods;
   const [isAvatarUploadInFlight, setIsAvatarUploadInFlight] = useState(false);
+  const [isGalleryUploadInFlight, setIsGalleryUploadInFlight] = useState(false);
   const uploadAvatarMutation = useUploadAgentAvatarMutation({
     onSuccess: (updatedAgent) => {
       showToast({ message: localize('com_ui_upload_agent_avatar') });
@@ -295,6 +347,58 @@ export default function AgentPanel() {
     },
     [getValues, uploadAvatarMutation],
   );
+
+  const uploadGalleryMutation = useUploadAgentGalleryMutation({
+    onSuccess: (updatedAgent) => {
+      showToast({ message: localize('com_ui_upload_agent_gallery') });
+
+      setValue('gallery_preview', updatedAgent.gallery?.map((g) => g.filepath) ?? [], {
+        shouldDirty: false,
+      });
+      setValue('gallery_files', [], { shouldDirty: false });
+      setValue('gallery_action', null, { shouldDirty: false });
+
+      const agentOption = getValues('agent');
+      if (agentOption && typeof agentOption !== 'string') {
+        setValue('agent', { ...agentOption, ...updatedAgent }, { shouldDirty: false });
+      }
+    },
+    onError: () => {
+      showToast({ message: localize('com_ui_upload_error'), status: 'error' });
+    },
+  });
+
+  const handleGalleryUpload = useCallback(
+    async (agentId?: string | null) => {
+      const galleryActionState = getValues('gallery_action');
+      const galleryFiles = getValues('gallery_files');
+      if (
+        !agentId ||
+        isEphemeralAgent(agentId) ||
+        galleryActionState !== 'upload' ||
+        !galleryFiles?.length
+      ) {
+        return false;
+      }
+
+      setIsGalleryUploadInFlight(true);
+      try {
+        return await persistGalleryChanges({
+          agentId,
+          galleryActionState,
+          galleryFiles,
+          uploadGallery: uploadGalleryMutation.mutateAsync,
+        });
+      } catch (error) {
+        console.error('[AgentPanel] Gallery upload failed', error);
+        throw error;
+      } finally {
+        setIsGalleryUploadInFlight(false);
+      }
+    },
+    [getValues, uploadGalleryMutation],
+  );
+
   const agent_id = useWatch({ control, name: 'id' });
   const previousVersionRef = useRef<number | undefined>();
 
@@ -343,18 +447,25 @@ export default function AgentPanel() {
 
       try {
         await handleAvatarUpload(data.id ?? agent_id);
+        await handleGalleryUpload(data.id ?? agent_id);
       } catch (error) {
-        console.error('[AgentPanel] Avatar upload failed after update', error);
+        console.error('[AgentPanel] Avatar/gallery upload failed after update', error);
         showToast({
           message: localize('com_agents_avatar_upload_error'),
           status: 'error',
         });
       }
 
+      const galleryActionState = getValues('gallery_action');
       if (avatarActionState === 'reset') {
         setValue('avatar_action', null, { shouldDirty: false });
         setValue('avatar_file', null, { shouldDirty: false });
         setValue('avatar_preview', '', { shouldDirty: false });
+      }
+      if (galleryActionState === 'reset') {
+        setValue('gallery_action', null, { shouldDirty: false });
+        setValue('gallery_files', [], { shouldDirty: false });
+        setValue('gallery_preview', [], { shouldDirty: false });
       }
 
       // Clear the ref after use
@@ -382,8 +493,9 @@ export default function AgentPanel() {
 
       try {
         await handleAvatarUpload(data.id);
+        await handleGalleryUpload(data.id);
       } catch (error) {
-        console.error('[AgentPanel] Avatar upload failed after create', error);
+        console.error('[AgentPanel] Avatar/gallery upload failed after create', error);
         showToast({
           message: localize('com_agents_avatar_upload_error'),
           status: 'error',
@@ -418,17 +530,24 @@ export default function AgentPanel() {
       const { payload: basePayload, provider, model } = composeAgentUpdatePayload(data, agent_id);
 
       if (agent_id) {
-        if (data.avatar_action === 'upload' && isAvatarUploadOnlyDirty(dirtyFields)) {
+        if (
+          (data.avatar_action === 'upload' || data.gallery_action === 'upload') &&
+          isAvatarOrGalleryUploadOnlyDirty(dirtyFields)
+        ) {
           try {
-            const uploaded = await handleAvatarUpload(agent_id);
-            if (!uploaded) {
+            const avatarUploaded = await handleAvatarUpload(agent_id);
+            const galleryUploaded = await handleGalleryUpload(agent_id);
+            if (!avatarUploaded && !galleryUploaded) {
               showToast({
                 message: localize('com_agents_avatar_upload_error'),
                 status: 'error',
               });
             }
           } catch (error) {
-            console.error('[AgentPanel] Avatar upload failed for avatar-only submission', error);
+            console.error(
+              '[AgentPanel] Avatar/gallery upload failed for upload-only submission',
+              error,
+            );
             showToast({
               message: localize('com_agents_avatar_upload_error'),
               status: 'error',
@@ -455,7 +574,16 @@ export default function AgentPanel() {
 
       create.mutate({ ...basePayload, model, tools, provider });
     },
-    [agent_id, create, dirtyFields, handleAvatarUpload, update, showToast, localize],
+    [
+      agent_id,
+      create,
+      dirtyFields,
+      handleAvatarUpload,
+      handleGalleryUpload,
+      update,
+      showToast,
+      localize,
+    ],
   );
 
   const handleSelectAgent = useCallback(() => {
@@ -549,7 +677,12 @@ export default function AgentPanel() {
           <AgentFooter
             createMutation={create}
             updateMutation={update}
-            isAvatarUploading={isAvatarUploadInFlight || uploadAvatarMutation.isLoading}
+            isAvatarUploading={
+              isAvatarUploadInFlight ||
+              isGalleryUploadInFlight ||
+              uploadAvatarMutation.isLoading ||
+              uploadGalleryMutation.isLoading
+            }
             activePanel={activePanel}
             setActivePanel={setActivePanel}
             setCurrentAgentId={setCurrentAgentId}

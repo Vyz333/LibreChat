@@ -55,6 +55,11 @@ export const getDefaultAgentFormValues = () => ({
   avatar_file: null,
   avatar_preview: '',
   avatar_action: null,
+  gallery_files: [],
+  gallery_preview: [],
+  gallery_action: null,
+  conversation_starters: defaultAgentFormValues.conversation_starters ?? [],
+  initial_message: defaultAgentFormValues.initial_message ?? '',
 });
 
 export const processAgentOption = ({
